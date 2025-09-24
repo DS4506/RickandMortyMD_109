@@ -100,9 +100,10 @@ private struct CharacterRow: View {
             }
 
             Spacer()
-            Image(systemName: "chevron.right")
-                .font(.footnote)
-                .foregroundStyle(.tertiaryLabel)
+            
+//            Image(systemName: "chevron.right")
+//                .font(.footnote)
+//                .foregroundStyle(.tertiaryLabel)
         }
         .padding(.vertical, 4)
     }

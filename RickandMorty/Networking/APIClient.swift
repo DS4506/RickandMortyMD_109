@@ -1,34 +1,52 @@
 import Foundation
 
 struct APIClient {
-    let baseURL = URL(string: "https://rickandmortyapi.com/api")!
+    private let baseURL = URL(string: "https://rickandmortyapi.com/api")!
 
-    // Generic GET returning raw Data after status check
-    func get(_ path: String, query: [URLQueryItem]? = nil) async throws -> Data {
+    private func buildURL(path: String, query: [URLQueryItem]?) throws -> URL {
         var comps = URLComponents(
             url: baseURL.appendingPathComponent(path),
             resolvingAgainstBaseURL: false
-        )!
-        comps.queryItems = query
-        let url = comps.url!
+        )
+        comps?.queryItems = query?.isEmpty == true ? nil : query
+        guard let url = comps?.url else { throw URLError(.badURL) }
+        return url
+    }
 
+    private func get(_ path: String, query: [URLQueryItem]? = nil) async throws -> Data {
+        let url = try buildURL(path: path, query: query)
         let (data, resp) = try await URLSession.shared.data(from: url)
         guard let http = resp as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
             throw URLError(.badServerResponse)
         }
-
         return data
     }
 
-    // Decode /character into CharactersResponse (with Info + [RMCharacter])
+    // MARK: - Characters
     func fetchCharacters(page: Int?, name: String?) async throws -> CharactersResponse {
         var items: [URLQueryItem] = []
-        if let page = page { items.append(URLQueryItem(name: "page", value: String(page))) }
-        if let name = name, !name.isEmpty { items.append(URLQueryItem(name: "name", value: name)) }
-
+        if let page { items.append(.init(name: "page", value: String(page))) }
+        if let name, !name.isEmpty { items.append(.init(name: "name", value: name)) }
         let data = try await get("character", query: items.isEmpty ? nil : items)
-        let dec = JSONDecoder()
-        return try dec.decode(CharactersResponse.self, from: data)
+        return try JSONDecoder().decode(CharactersResponse.self, from: data)
+    }
+
+    // MARK: - Episodes
+    func fetchEpisodes(page: Int?, name: String?) async throws -> EpisodesResponse {
+        var items: [URLQueryItem] = []
+        if let page { items.append(.init(name: "page", value: String(page))) }
+        if let name, !name.isEmpty { items.append(.init(name: "name", value: name)) }
+        let data = try await get("episode", query: items.isEmpty ? nil : items)
+        return try JSONDecoder().decode(EpisodesResponse.self, from: data)
+    }
+
+    // MARK: - Locations
+    func fetchLocations(page: Int?, name: String?) async throws -> LocationsResponse {
+        var items: [URLQueryItem] = []
+        if let page { items.append(.init(name: "page", value: String(page))) }
+        if let name, !name.isEmpty { items.append(.init(name: "name", value: name)) }
+        let data = try await get("location", query: items.isEmpty ? nil : items)
+        return try JSONDecoder().decode(LocationsResponse.self, from: data)
     }
 }
